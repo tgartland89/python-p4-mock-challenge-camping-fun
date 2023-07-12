@@ -49,7 +49,10 @@ def get_camper(id):
     camper = Camper.query.get(id)
 
     if not camper:
-        (404)  # Return a 404 error if the camper doesn't exist
+        error_response = {
+            'error': 'Camper not found'
+        }
+        return jsonify(error_response), 404
 
     # Get the camper's signups
     signups = Signup.query.filter_by(camper_id=id).all()
