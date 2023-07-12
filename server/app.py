@@ -44,5 +44,39 @@ def get_campers():
 # Return the camper data as JSON response
     return jsonify(campers=camper_data)
 
+@app.route('/campers/<int:id>', methods=['GET'])
+def get_camper(id):
+    camper = Camper.query.get(id)
+
+    if not camper:
+        (404)  # Return a 404 error if the camper doesn't exist
+
+    # Get the camper's signups
+    signups = Signup.query.filter_by(camper_id=id).all()
+
+    # Create a list to hold signup data
+    signup_data = []
+
+    # Iterate over each signup and extract the required fields
+    for signup in signups:
+        signup_info = {
+            'id': signup.id,
+            'time': signup.time,
+            'activity_id': signup.activity_id
+        }
+        signup_data.append(signup_info)
+
+    # Create the camper data with signups
+    camper_data = {
+        'id': camper.id,
+        'name': camper.name,
+        'age': camper.age,
+        'signups': signup_data
+    }
+
+    # Return the camper data as JSON response
+    return jsonify(camper=camper_data)
+
+
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
