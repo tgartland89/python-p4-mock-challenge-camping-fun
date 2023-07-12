@@ -166,5 +166,24 @@ def update_camper(id):
     # Return the response data as JSON response
     return jsonify(response_data)
 
+@app.route('/activities', methods=['GET'])
+def get_activities():
+    activities = Activity.query.all()
+
+    # Create a list to hold activity data
+    activity_data = []
+
+    # Iterate over each activity and extract the required fields
+    for activity in activities:
+        activity_info = {
+            'id': activity.id,
+            'name': activity.name,
+            'difficulty': activity.difficulty
+        }
+        activity_data.append(activity_info)
+
+    # Return the activity data as JSON response
+    return jsonify(activity_data)
+
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
