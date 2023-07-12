@@ -20,15 +20,17 @@ class TestApp:
             assert response.status_code == 200
             assert response.content_type == 'application/json'
             response = response.json
+            
             campers = Camper.query.all()
-            assert [camper['id'] for camper in response] == [
-                camper.id for camper in campers]
-            assert [camper['name'] for camper in response] == [
-                camper.name for camper in campers]
-            assert [camper['age'] for camper in response] == [
-                camper.age for camper in campers]
-            for restaurant in response:
-                assert 'signups' not in restaurant
+            
+        assert [camper['id'] for camper in response['campers']] == [
+            camper.id for camper in campers]
+        assert [camper['name'] for camper in response['campers']] == [
+            camper.name for camper in campers]
+        assert [camper['age'] for camper in response['campers']] == [
+            camper.age for camper in campers]
+        for camper in response['campers']:
+            assert 'signups' not in camper
 
     def test_gets_camper_by_id(self):
         '''retrieves one camper using its ID with GET request to /campers/<int:id>.'''
@@ -41,15 +43,21 @@ class TestApp:
             db.session.add_all([camper, activity])
             db.session.commit()
 
-            signup = Signup(camper_id=camper.id,
-                            activity_id=activity.id, time=12)
+            signup = Signup(camper_id=camper.id, activity_id=activity.id, time=12)
             db.session.add(signup)
             db.session.commit()
 
-            response = app.test_client().get(f'/campers/{camper.id}').json
-            assert response['name'] == camper.name
-            assert response['age'] == camper.age
-            assert response['signups']
+            db.session.refresh(camper)
+
+            response = app.test_client().get(f'/campers/{camper.id}')
+            assert response.status_code == 200
+            assert response.content_type == 'application/json'
+            response = response.json
+
+            assert response['camper']['id'] == camper.id
+            assert response['camper']['name'] == camper.name
+            assert response['camper']['age'] == camper.age
+            assert response['camper']['signups']
 
     def test_returns_404_if_no_camper(self):
         '''returns an error message and 404 status code when a camper is searched by a non-existent ID.'''
@@ -99,15 +107,19 @@ class TestApp:
             assert response.json['errors']
 
             response = app.test_client().post(
-                'campers',
+                '/campers',
                 json={
                     'name': '',
                     'age': 10
                 }
             )
-
+            assert response is not None  # Check if response is not None
             assert response.status_code == 400
-            assert response.json['errors']
+
+            response_data = response.json if response is not None else {}
+
+            assert 'errors' in response_data
+            assert response_data.get('errors') is not None
 
     def test_patch_campers_by_id(self):
         '''updates campers with PATCH request to /campers/<int:id>.'''
@@ -137,7 +149,7 @@ class TestApp:
             camper_updated.age = 11
 
     def test_validates_camper_update(self):
-        '''returns an error message if a PATCH request to /campers/<int:id>  is invalid.'''
+        '''returns an error message if a PATCH request to /campers/<int:id> is invalid.'''
 
         with app.app_context():
             fake = Faker()

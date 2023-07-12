@@ -1,6 +1,3 @@
-# #!/usr/bin/env python3
-
-# PASSING 10 Pytest FAILING 6 
 from models import db, Activity, Camper, Signup
 from flask_restful import Api, Resource
 from flask_migrate import Migrate
@@ -10,14 +7,12 @@ import os
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DATABASE = os.environ.get("DB_URI", f"sqlite:///{os.path.join(BASE_DIR, 'app.db')}")
 
-
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.json.compact = False
 
 migrate = Migrate(app, db)
-
 db.init_app(app)
 
 
@@ -25,39 +20,27 @@ db.init_app(app)
 def home():
     return ''
 
+
 @app.route('/campers', methods=['GET'])
 def get_campers():
     campers = Camper.query.all()
-
-# Create a list to hold camper data
-    camper_data = []
-
-# Iterate over each camper and extract the required fields
-    for camper in campers:
-        camper_info = {
-            'id': camper.id,
-            'name': camper.name,
-            'age': camper.age
-        }
-        camper_data.append(camper_info)
-
-# Return the camper data as JSON response
+    camper_data = [serialize_camper(camper) for camper in campers]
     return jsonify(campers=camper_data)
 
 
 @app.route('/campers', methods=['POST'])
 def create_camper():
-# Get the request body
-    request_data = request.get_json()
-
-# Extract the name and age from the request body
-    name = request_data.get('name')
+    request_data = request.get_json() or {}
+    name = request_data.get('name', '')
     age = request_data.get('age')
 
-# Create a new Camper object
-    camper = Camper(name=name, age=age)
+    if not age.isdigit():
+        validation_errors = ['Age must be an integer']
+        response_data = {'errors': validation_errors}
+        return jsonify(response_data), 400
 
-# Validate the new camper
+    camper = Camper(name=name, age=int(age))
+
     validation_errors = []
     try:
         db.session.add(camper)
@@ -67,89 +50,53 @@ def create_camper():
         validation_errors = [str(error) for error in e.args]
 
     if validation_errors:
-        response_data = {
-            'errors': validation_errors
-        }
+        response_data = {'errors': validation_errors}
         return jsonify(response_data), 400
 
-# Create the response data
     response_data = {
         'id': camper.id,
         'name': camper.name,
         'age': camper.age
     }
 
-# Return the response data as JSON response
     return jsonify(response_data), 201
+
 
 @app.route('/campers/<int:id>', methods=['GET'])
 def get_camper(id):
     camper = Camper.query.get(id)
 
     if not camper:
-        error_response = {
-            'error': 'Camper not found'
-        }
+        error_response = {'error': 'Camper not found'}
         return jsonify(error_response), 404
 
-# Get the camper's signups
-    signups = Signup.query.filter_by(camper_id=id).all()
-
-# Create a list to hold signup data
-    signup_data = []
-
-# Iterate over each signup and extract the required fields
-    for signup in signups:
-        signup_info = {
-            'id': signup.id,
-            'time': signup.time,
-            'activity_id': signup.activity_id
-        }
-        signup_data.append(signup_info)
-
-# Create the camper data with signups
-    camper_data = {
-        'id': camper.id,
-        'name': camper.name,
-        'age': camper.age,
-        'signups': signup_data
-    }
-
-# Return the camper data as JSON response
+    camper_data = serialize_camper_with_signups(camper)
     return jsonify(camper=camper_data)
+
 
 @app.route('/campers/<int:id>', methods=['PATCH'])
 def update_camper(id):
     camper = Camper.query.get(id)
 
     if not camper:
-        error_response = {
-            'error': 'Camper not found'
-        }
+        error_response = {'error': 'Camper not found'}
         return jsonify(error_response), 404
 
-    # Get the request body
     request_data = request.get_json()
-
-    # Extract the name and age from the request body
     name = request_data.get('name')
     age = request_data.get('age')
 
-    # Update the camper's name if provided
     if name:
         camper.name = name
-
-    # Update the camper's age if provided and it's a valid integer
     if age:
         try:
-            camper.age = int(age)
+            camper.age = int(age)  # Convert age to an integer
         except ValueError:
             error_response = {
                 'error': 'Invalid age value. Age must be a valid integer.'
             }
             return jsonify(error_response), 400
 
-    # Validate the updated camper
     validation_errors = []
     try:
         db.session.commit()
@@ -158,52 +105,33 @@ def update_camper(id):
         validation_errors = [str(error) for error in e.args]
 
     if validation_errors:
-        response_data = {
-            'errors': validation_errors
-        }
+        response_data = {'errors': validation_errors}
         return jsonify(response_data), 400
 
-    # Create the response data
     response_data = {
         'id': camper.id,
         'name': camper.name,
         'age': camper.age
     }
 
-    # Return the response data as JSON response
-    return jsonify(response_data)
+    return jsonify(response_data), 202
 
 
 @app.route('/activities', methods=['GET'])
 def get_activities():
     activities = Activity.query.all()
-
-# Create a list to hold activity data
-    activity_data = []
-
-# Iterate over each activity and extract the required fields
-    for activity in activities:
-        activity_info = {
-            'id': activity.id,
-            'name': activity.name,
-            'difficulty': activity.difficulty
-        }
-        activity_data.append(activity_info)
-
-# Return the activity data as JSON response
+    activity_data = [serialize_activity(activity) for activity in activities]
     return jsonify(activity_data)
+
 
 @app.route('/activities/<int:id>', methods=['DELETE'])
 def delete_activity(id):
     activity = Activity.query.get(id)
 
     if not activity:
-        error_response = {
-            'error': 'Activity not found'
-        }
+        error_response = {'error': 'Activity not found'}
         return jsonify(error_response), 404
 
-# Delete associated signups before deleting the activity
     signups = Signup.query.filter_by(activity_id=id).all()
     for signup in signups:
         db.session.delete(signup)
@@ -211,33 +139,31 @@ def delete_activity(id):
     db.session.delete(activity)
     db.session.commit()
 
-# Return an empty response body
     return '', 204
+
 
 @app.route('/signups', methods=['POST'])
 def create_signup():
-# Get the request body
     request_data = request.get_json()
-
-# Extract the camper_id, activity_id, and time from the request body
     camper_id = request_data.get('camper_id')
     activity_id = request_data.get('activity_id')
     time = request_data.get('time')
 
-# Check if the camper and activity exist
     camper = Camper.query.get(camper_id)
     activity = Activity.query.get(activity_id)
 
     if not camper or not activity:
-        error_response = {
-            'error': 'Camper or Activity not found'
-        }
-        return jsonify(error_response), 404
+        error_response = {'error': 'Camper or Activity not found'}
+        return jsonify(error_response), 400
 
-# Create a new Signup object
+    if not isinstance(time, int) or time < 0 or time > 23:
+        error_response = {
+            'error': 'Invalid time value. Time must be between 0 and 23.'
+        }
+        return jsonify(error_response), 400
+
     signup = Signup(camper_id=camper_id, activity_id=activity_id, time=time)
 
-# Validate the new signup
     validation_errors = []
     try:
         db.session.add(signup)
@@ -247,34 +173,60 @@ def create_signup():
         validation_errors = [str(error) for error in e.args]
 
     if validation_errors:
-        response_data = {
-            'errors': validation_errors
-        }
+        response_data = {'errors': validation_errors}
         return jsonify(response_data), 400
 
-# Create the response data with related activity and camper data
     response_data = {
         'id': signup.id,
         'camper_id': camper.id,
         'activity_id': activity.id,
         'time': signup.time,
-        'activity': {
-            'id': activity.id,
-            'name': activity.name,
-            'difficulty': activity.difficulty
-        },
-        'camper': {
-            'id': camper.id,
-            'name': camper.name,
-            'age': camper.age
-        }
+        'activity': serialize_activity(activity),
+        'camper': serialize_camper(camper)
     }
 
-# Return the response data as JSON response
     return jsonify(response_data), 201
+
+
+def serialize_camper(camper):
+    return {
+        'id': camper.id,
+        'name': camper.name,
+        'age': camper.age
+    }
+
+
+def serialize_signup(signup):
+    return {
+        'id': signup.id,
+        'time': signup.time,
+        'activity_id': signup.activity_id
+    }
+
+
+def serialize_activity(activity):
+    return {
+        'id': activity.id,
+        'name': activity.name,
+        'difficulty': activity.difficulty
+    }
+
+
+def serialize_camper_with_signups(camper):
+    signups = Signup.query.filter_by(camper_id=camper.id).all()
+    signup_data = [serialize_signup(signup) for signup in signups]
+
+    return {
+        'id': camper.id,
+        'name': camper.name,
+        'age': camper.age,
+        'signups': signup_data
+    }
+
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
+
 
 # *************************************************************************
 # DRY CODE 9 PASS- 7 FAILS

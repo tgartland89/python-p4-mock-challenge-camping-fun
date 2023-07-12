@@ -209,3 +209,5 @@ class Signup(db.Model, SerializerMixin):
 
 #     def __repr__(self):
 #         return f'<Signup {self.id}>'
+
+
