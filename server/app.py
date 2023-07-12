@@ -206,5 +206,64 @@ def delete_activity(id):
     # Return an empty response body
     return '', 204
 
+@app.route('/signups', methods=['POST'])
+def create_signup():
+    # Get the request body
+    request_data = request.get_json()
+
+    # Extract the camper_id, activity_id, and time from the request body
+    camper_id = request_data.get('camper_id')
+    activity_id = request_data.get('activity_id')
+    time = request_data.get('time')
+
+    # Check if the camper and activity exist
+    camper = Camper.query.get(camper_id)
+    activity = Activity.query.get(activity_id)
+
+    if not camper or not activity:
+        error_response = {
+            'error': 'Camper or Activity not found'
+        }
+        return jsonify(error_response), 404
+
+    # Create a new Signup object
+    signup = Signup(camper_id=camper_id, activity_id=activity_id, time=time)
+
+    # Validate the new signup
+    validation_errors = []
+    try:
+        db.session.add(signup)
+        db.session.commit()
+    except ValueError as e:
+        db.session.rollback()
+        validation_errors = [str(error) for error in e.args]
+
+    if validation_errors:
+        response_data = {
+            'errors': validation_errors
+        }
+        return jsonify(response_data), 400
+
+    # Create the response data with related activity and camper data
+    response_data = {
+        'id': signup.id,
+        'camper_id': camper.id,
+        'activity_id': activity.id,
+        'time': signup.time,
+        'activity': {
+            'id': activity.id,
+            'name': activity.name,
+            'difficulty': activity.difficulty
+        },
+        'camper': {
+            'id': camper.id,
+            'name': camper.name,
+            'age': camper.age
+        }
+    }
+
+    # Return the response data as JSON response
+    return jsonify(response_data), 201
+
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
