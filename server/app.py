@@ -185,5 +185,26 @@ def get_activities():
     # Return the activity data as JSON response
     return jsonify(activity_data)
 
+@app.route('/activities/<int:id>', methods=['DELETE'])
+def delete_activity(id):
+    activity = Activity.query.get(id)
+
+    if not activity:
+        error_response = {
+            'error': 'Activity not found'
+        }
+        return jsonify(error_response), 404
+
+    # Delete associated signups before deleting the activity
+    signups = Signup.query.filter_by(activity_id=id).all()
+    for signup in signups:
+        db.session.delete(signup)
+
+    db.session.delete(activity)
+    db.session.commit()
+
+    # Return an empty response body
+    return '', 204
+
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
