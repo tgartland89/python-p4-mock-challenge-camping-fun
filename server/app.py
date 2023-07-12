@@ -81,5 +81,52 @@ def get_camper(id):
     return jsonify(camper=camper_data)
 
 
+@app.route('/campers/<int:id>', methods=['PATCH'])
+def update_camper(id):
+    camper = Camper.query.get(id)
+
+    if not camper:
+        error_response = {
+            'error': 'Camper not found'
+        }
+        return jsonify(error_response), 404
+
+    # Get the request body
+    request_data = request.get_json()
+
+    # Extract the name and age from the request body
+    name = request_data.get('name')
+    age = request_data.get('age')
+
+    # Update the camper's name and age if provided
+    if name:
+        camper.name = name
+    if age:
+        camper.age = age
+
+    # Validate the updated camper
+    validation_errors = []
+    try:
+        db.session.commit()
+    except ValueError as e:
+        db.session.rollback()
+        validation_errors = [str(error) for error in e.args]
+
+    if validation_errors:
+        response_data = {
+            'errors': validation_errors
+        }
+        return jsonify(response_data), 400
+
+    # Create the response data
+    response_data = {
+        'id': camper.id,
+        'name': camper.name,
+        'age': camper.age
+    }
+
+    # Return the response data as JSON response
+    return jsonify(response_data)
+
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
