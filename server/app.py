@@ -25,5 +25,24 @@ db.init_app(app)
 def home():
     return ''
 
+@app.route('/campers', methods=['GET'])
+def get_campers():
+    campers = Camper.query.all()
+
+# Create a list to hold camper data
+    camper_data = []
+
+# Iterate over each camper and extract the required fields
+    for camper in campers:
+        camper_info = {
+            'id': camper.id,
+            'name': camper.name,
+            'age': camper.age
+        }
+        camper_data.append(camper_info)
+
+# Return the camper data as JSON response
+    return jsonify(campers=camper_data)
+
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
