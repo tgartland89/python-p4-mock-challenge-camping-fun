@@ -24,7 +24,7 @@ class Activity(db.Model, SerializerMixin):
     name = db.Column(db.String)
     difficulty = db.Column(db.Integer)
 
-    # Add relationship
+# Add relationship
 
     signups = db.relationship('Signup', backref='activity', cascade='all, delete-orphan')
 
@@ -33,7 +33,7 @@ class Activity(db.Model, SerializerMixin):
 # automatically getting rid of child objects when we remove parent objects.
     campers = association_proxy('signups', 'camper')
     
-    # Add serialization rules
+# Add serialization rules
 
     serializer_rules = ("-signups.activity",)
 
@@ -49,15 +49,15 @@ class Camper(db.Model, SerializerMixin):
     name = db.Column(db.String, nullable=False)
     age = db.Column(db.Integer)
 
-    # Add relationship
+# Add relationship
 
     signups = db.relationship('Signup', backref='camper', cascade='all, delete-orphan')
     
-    # Add serialization rules
+# Add serialization rules
 
     serializer_rules = ("-signups.camper",)
     
-    # Add validation
+# Add validations
 
     @validates('name')
     def validate_name(self, key, name):
@@ -82,16 +82,16 @@ class Signup(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     time = db.Column(db.Integer)
 
-    # Add relationships
+# Add relationships
 
     camper_id = db.Column(db.Integer, ForeignKey('campers.id'), nullable=False)
     activity_id = db.Column(db.Integer, ForeignKey('activities.id'), nullable=False)
     
-    # Add serialization rules
+# Add serialization rules
 
     serializer_rules = ("-camper.signups", "-activity.signups")
     
-    # Add validation
+# Add validation
 
     @validates('time')
     def validate_time(self, key, time):

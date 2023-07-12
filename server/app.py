@@ -3,7 +3,7 @@
 from models import db, Activity, Camper, Signup
 from flask_restful import Api, Resource
 from flask_migrate import Migrate
-from flask import Flask, make_response, jsonify, request
+from flask import Flask, jsonify, request
 import os
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -47,17 +47,17 @@ def get_campers():
 
 @app.route('/campers', methods=['POST'])
 def create_camper():
-    # Get the request body
+# Get the request body
     request_data = request.get_json()
 
-    # Extract the name and age from the request body
+# Extract the name and age from the request body
     name = request_data.get('name')
     age = request_data.get('age')
 
-    # Create a new Camper object
+# Create a new Camper object
     camper = Camper(name=name, age=age)
 
-    # Validate the new camper
+# Validate the new camper
     validation_errors = []
     try:
         db.session.add(camper)
@@ -72,15 +72,15 @@ def create_camper():
         }
         return jsonify(response_data), 400
 
-    # Create the response data
+# Create the response data
     response_data = {
         'id': camper.id,
         'name': camper.name,
         'age': camper.age
     }
 
-    # Return the response data as JSON response
-    return jsonify(response_data), 20
+# Return the response data as JSON response
+    return jsonify(response_data), 201
 
 @app.route('/campers/<int:id>', methods=['GET'])
 def get_camper(id):
@@ -92,13 +92,13 @@ def get_camper(id):
         }
         return jsonify(error_response), 404
 
-    # Get the camper's signups
+# Get the camper's signups
     signups = Signup.query.filter_by(camper_id=id).all()
 
-    # Create a list to hold signup data
+# Create a list to hold signup data
     signup_data = []
 
-    # Iterate over each signup and extract the required fields
+# Iterate over each signup and extract the required fields
     for signup in signups:
         signup_info = {
             'id': signup.id,
@@ -107,7 +107,7 @@ def get_camper(id):
         }
         signup_data.append(signup_info)
 
-    # Create the camper data with signups
+# Create the camper data with signups
     camper_data = {
         'id': camper.id,
         'name': camper.name,
@@ -115,9 +115,8 @@ def get_camper(id):
         'signups': signup_data
     }
 
-    # Return the camper data as JSON response
+# Return the camper data as JSON response
     return jsonify(camper=camper_data)
-
 
 @app.route('/campers/<int:id>', methods=['PATCH'])
 def update_camper(id):
@@ -129,20 +128,20 @@ def update_camper(id):
         }
         return jsonify(error_response), 404
 
-    # Get the request body
+# Get the request body
     request_data = request.get_json()
 
-    # Extract the name and age from the request body
+# Extract the name and age from the request body
     name = request_data.get('name')
     age = request_data.get('age')
 
-    # Update the camper's name and age if provided
+# Update the camper's name and age if provided
     if name:
         camper.name = name
     if age:
         camper.age = age
 
-    # Validate the updated camper
+# Validate the updated camper
     validation_errors = []
     try:
         db.session.commit()
@@ -156,24 +155,24 @@ def update_camper(id):
         }
         return jsonify(response_data), 400
 
-    # Create the response data
+# Create the response data
     response_data = {
         'id': camper.id,
         'name': camper.name,
         'age': camper.age
     }
 
-    # Return the response data as JSON response
+# Return the response data as JSON response
     return jsonify(response_data)
 
 @app.route('/activities', methods=['GET'])
 def get_activities():
     activities = Activity.query.all()
 
-    # Create a list to hold activity data
+# Create a list to hold activity data
     activity_data = []
 
-    # Iterate over each activity and extract the required fields
+# Iterate over each activity and extract the required fields
     for activity in activities:
         activity_info = {
             'id': activity.id,
@@ -182,7 +181,7 @@ def get_activities():
         }
         activity_data.append(activity_info)
 
-    # Return the activity data as JSON response
+# Return the activity data as JSON response
     return jsonify(activity_data)
 
 @app.route('/activities/<int:id>', methods=['DELETE'])
@@ -195,7 +194,7 @@ def delete_activity(id):
         }
         return jsonify(error_response), 404
 
-    # Delete associated signups before deleting the activity
+# Delete associated signups before deleting the activity
     signups = Signup.query.filter_by(activity_id=id).all()
     for signup in signups:
         db.session.delete(signup)
@@ -203,20 +202,20 @@ def delete_activity(id):
     db.session.delete(activity)
     db.session.commit()
 
-    # Return an empty response body
+# Return an empty response body
     return '', 204
 
 @app.route('/signups', methods=['POST'])
 def create_signup():
-    # Get the request body
+# Get the request body
     request_data = request.get_json()
 
-    # Extract the camper_id, activity_id, and time from the request body
+# Extract the camper_id, activity_id, and time from the request body
     camper_id = request_data.get('camper_id')
     activity_id = request_data.get('activity_id')
     time = request_data.get('time')
 
-    # Check if the camper and activity exist
+# Check if the camper and activity exist
     camper = Camper.query.get(camper_id)
     activity = Activity.query.get(activity_id)
 
@@ -226,10 +225,10 @@ def create_signup():
         }
         return jsonify(error_response), 404
 
-    # Create a new Signup object
+# Create a new Signup object
     signup = Signup(camper_id=camper_id, activity_id=activity_id, time=time)
 
-    # Validate the new signup
+# Validate the new signup
     validation_errors = []
     try:
         db.session.add(signup)
@@ -244,7 +243,7 @@ def create_signup():
         }
         return jsonify(response_data), 400
 
-    # Create the response data with related activity and camper data
+# Create the response data with related activity and camper data
     response_data = {
         'id': signup.id,
         'camper_id': camper.id,
@@ -262,7 +261,7 @@ def create_signup():
         }
     }
 
-    # Return the response data as JSON response
+# Return the response data as JSON response
     return jsonify(response_data), 201
 
 if __name__ == '__main__':
