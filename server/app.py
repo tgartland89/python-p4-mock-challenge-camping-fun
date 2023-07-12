@@ -44,6 +44,44 @@ def get_campers():
 # Return the camper data as JSON response
     return jsonify(campers=camper_data)
 
+
+@app.route('/campers', methods=['POST'])
+def create_camper():
+    # Get the request body
+    request_data = request.get_json()
+
+    # Extract the name and age from the request body
+    name = request_data.get('name')
+    age = request_data.get('age')
+
+    # Create a new Camper object
+    camper = Camper(name=name, age=age)
+
+    # Validate the new camper
+    validation_errors = []
+    try:
+        db.session.add(camper)
+        db.session.commit()
+    except ValueError as e:
+        db.session.rollback()
+        validation_errors = [str(error) for error in e.args]
+
+    if validation_errors:
+        response_data = {
+            'errors': validation_errors
+        }
+        return jsonify(response_data), 400
+
+    # Create the response data
+    response_data = {
+        'id': camper.id,
+        'name': camper.name,
+        'age': camper.age
+    }
+
+    # Return the response data as JSON response
+    return jsonify(response_data), 20
+
 @app.route('/campers/<int:id>', methods=['GET'])
 def get_camper(id):
     camper = Camper.query.get(id)
